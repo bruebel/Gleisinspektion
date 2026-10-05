@@ -1,30 +1,48 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/lokal';
-
-const datumFormat = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium' });
+import { Link } from 'react-router-dom';
+import { aktiv, db } from '../db/lokal';
+import { Leer, Seitenkopf, datum } from '../komponenten';
 
 export function Inspektionen() {
-  const inspektionen = useLiveQuery(() => db.inspektion.orderBy('datum').reverse().filter((i) => !i.geloescht).toArray());
+  const inspektionen = useLiveQuery(async () => aktiv(await db.inspektion.orderBy('datum').reverse().toArray()));
   const anschluesse = useLiveQuery(() => db.gleisanschluss.toArray());
+  const anzahl = useLiveQuery(async () => {
+    const zahl = new Map<string, number>();
+    for (const f of aktiv(await db.feststellung.toArray())) zahl.set(f.inspektionId, (zahl.get(f.inspektionId) ?? 0) + 1);
+    return zahl;
+  });
   const nameVon = (id: string) => anschluesse?.find((a) => a.id === id)?.name ?? '–';
 
   if (!inspektionen) return null;
 
   return (
     <section>
-      <h2>Inspektionen</h2>
+      <Seitenkopf titel="Inspektionen" />
+      <div className="aktionen">
+        <Link to="/inspektionen/neu" className="knopf primaer">
+          + Neue Inspektion
+        </Link>
+      </div>
+      <p className="hinweis klein">
+        Die Daten werden auf diesem Gerät gespeichert. Das Hochladen zum Server kommt mit dem nächsten Ausbauschritt.
+      </p>
       {inspektionen.length === 0 ? (
-        <p className="leer">Noch keine Inspektionen erfasst. Die Erfassung folgt im nächsten Ausbauschritt.</p>
+        <Leer>Noch keine Inspektionen erfasst.</Leer>
       ) : (
         <ul className="liste">
           {inspektionen.map((i) => (
             <li key={i.id}>
-              <strong>{nameVon(i.gleisanschlussId)}</strong>
-              <span>
-                {datumFormat.format(new Date(i.datum))}
-                {i.beginn && `, ${i.beginn}–${i.ende ?? ''}`} · {i.durchfuehrender}
-              </span>
-              <span className={`marke ${i.status}`}>{i.status === 'entwurf' ? 'Entwurf' : 'Abgeschlossen'}</span>
+              <Link to={`/inspektionen/${i.id}`} className="eintrag">
+                <strong>{nameVon(i.gleisanschlussId)}</strong>
+                <span>
+                  {datum(i.datum)}
+                  {i.beginn && `, ${i.beginn}${i.ende ? `–${i.ende}` : ''} Uhr`} · {i.durchfuehrender}
+                </span>
+                <span>
+                  <span className={`marke ${i.status}`}>{i.status === 'entwurf' ? 'In Arbeit' : 'Abgeschlossen'}</span>{' '}
+                  {anzahl?.get(i.id) ?? 0} Feststellungen
+                </span>
+              </Link>
             </li>
           ))}
         </ul>
