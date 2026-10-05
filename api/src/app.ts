@@ -4,6 +4,7 @@ import { eq, sql } from 'drizzle-orm';
 import type { Db } from './db.js';
 import { beendeSitzung, benutzerZuToken, erstelleSitzung, pruefePasswort } from './auth.js';
 import { benutzer } from './schema.js';
+import { registriereSync } from './sync.js';
 
 export type AngemeldeterBenutzer = NonNullable<Awaited<ReturnType<typeof benutzerZuToken>>>;
 
@@ -18,7 +19,10 @@ const bearerToken = (req: FastifyRequest) => {
   return header?.startsWith('Bearer ') ? header.slice(7) : null;
 };
 
-export function baueApp(db: Db, optionen: { logger?: boolean; corsOrigin?: string } = {}) {
+export function baueApp(
+  db: Db,
+  optionen: { logger?: boolean; corsOrigin?: string; fotoOrdner?: string } = {},
+) {
   const app = Fastify({ logger: optionen.logger ?? false });
 
   if (optionen.corsOrigin) app.register(cors, { origin: optionen.corsOrigin });
@@ -32,6 +36,17 @@ export function baueApp(db: Db, optionen: { logger?: boolean; corsOrigin?: strin
   const nurAngemeldet = async (req: FastifyRequest, reply: FastifyReply) => {
     if (!req.benutzer) return reply.code(401).send({ fehler: 'Nicht angemeldet' });
   };
+
+  // Abgleich nur für Admin und Inspektoren; Berichtsempfänger bekommen später eine eigene, eingeschränkte Sicht.
+  const nurInspektoren = async (req: FastifyRequest, reply: FastifyReply) => {
+    if (!req.benutzer) return reply.code(401).send({ fehler: 'Nicht angemeldet' });
+    if (req.benutzer.rolle === 'empfaenger') return reply.code(403).send({ fehler: 'Keine Berechtigung' });
+  };
+
+  registriereSync(app, db, {
+    fotoOrdner: optionen.fotoOrdner ?? process.env.FOTO_ORDNER ?? './data/fotos',
+    nurBerechtigt: nurInspektoren,
+  });
 
   app.get('/api/health', async () => {
     await db.execute(sql`select 1`);

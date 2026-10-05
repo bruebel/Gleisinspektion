@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { abmelden, gespeicherteAnmeldung, type Benutzer } from './api';
 import { db } from './db/lokal';
 import { useOnline } from './useOnline';
+import { starteAutoSync, synchronisiere, syncZustand } from './sync';
 import { Anmelden } from './seiten/Anmelden';
 import { AnsprechpartnerFormular } from './seiten/AnsprechpartnerFormular';
 import { ElementFormular } from './seiten/ElementFormular';
@@ -20,6 +21,8 @@ export function App() {
   const online = useOnline();
   const location = useLocation();
   const ausstehend = useLiveQuery(() => db.outbox.count(), [], 0);
+  const sync = useSyncExternalStore(syncZustand.abonnieren, syncZustand.lesen);
+  useEffect(() => (benutzer ? starteAutoSync() : undefined), [benutzer]);
 
   if (!benutzer) return <Anmelden onAngemeldet={setBenutzer} />;
 
@@ -27,12 +30,18 @@ export function App() {
     <div className="app">
       <header className="kopf">
         <h1>Gleisinspektion</h1>
-        <span className={online ? 'status online' : 'status offline'}>
-          {online ? 'Online' : 'Offline'}
-          {ausstehend > 0 && ` · ${ausstehend} nicht hochgeladen`}
-        </span>
+        <button
+          type="button"
+          className={`status ${!online ? 'offline' : sync.fehler ? 'warnung' : 'online'}`}
+          onClick={() => online && void synchronisiere()}
+          title={sync.fehler ?? (sync.letzterErfolg ? `Zuletzt abgeglichen: ${new Date(sync.letzterErfolg).toLocaleString('de-DE')}` : '')}
+        >
+          {!online ? 'Offline' : sync.laeuft ? 'Abgleich …' : sync.fehler ? 'Abgleich gestört' : 'Online'}
+          {ausstehend > 0 && ` · ${ausstehend} offen`}
+        </button>
       </header>
 
+      {sync.fehler && online && !sync.laeuft && <p className="hinweisleiste">{sync.fehler}</p>}
       <main className="inhalt">
         <Routes>
           <Route path="/" element={<Inspektionen />} />
@@ -57,6 +66,7 @@ export function App() {
         <button
           type="button"
           onClick={async () => {
+            if (ausstehend > 0 && !confirm(`${ausstehend} Änderungen sind noch nicht hochgeladen. Sie bleiben auf dem Gerät und werden nach der nächsten Anmeldung hochgeladen. Trotzdem abmelden?`)) return;
             await abmelden();
             setBenutzer(null);
           }}

@@ -46,7 +46,7 @@ Die erzeugte Migration in `api/drizzle/` mit einchecken; sie wird beim Start der
 
 - [x] Grundgerüst: App-Shell offline-fähig, Anmeldung, Datenmodell, Docker-Betrieb
 - [x] Stammdaten (Gleisanschlüsse, Ansprechpartner, Infrastrukturelemente) inkl. Excel-Import
-- [x] Inspektion und Feststellungen mit Fotos offline erfassen (vorerst nur auf dem Gerät gespeichert)
-- [ ] Synchronisation Gerät ↔ Server
+- [x] Inspektion und Feststellungen mit Fotos offline erfassen
+- [x] Synchronisation Gerät ↔ Server (beim Öffnen der App, bei Netzrückkehr, nach Änderungen, minütlich)
 - [ ] PDF-Bericht
 - [ ] Automatischer Versand, Nachverfolgung, weitere Benutzer

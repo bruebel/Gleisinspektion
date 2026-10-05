@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { db } from './db/lokal';
+import { ladeFoto } from './sync';
 
 /** Zeigt ein lokal gespeichertes Foto (oder eine noch nicht gespeicherte Datei) als Vorschaubild. */
 export function FotoVorschau({ fotoId, datei }: { fotoId?: string; datei?: Blob }) {
@@ -9,7 +10,8 @@ export function FotoVorschau({ fotoId, datei }: { fotoId?: string; datei?: Blob 
     let aktuell: string | null = null;
     let abgebrochen = false;
     (async () => {
-      const blob = datei ?? (fotoId ? (await db.fotoDatei.get(fotoId))?.datei : undefined);
+      // Fotos von anderen Geräten liegen evtl. nur auf dem Server und werden bei Bedarf geholt.
+      const blob = datei ?? (fotoId ? ((await db.fotoDatei.get(fotoId))?.datei ?? (await ladeFoto(fotoId))) : undefined);
       if (!blob || abgebrochen) return;
       aktuell = URL.createObjectURL(blob);
       setUrl(aktuell);
