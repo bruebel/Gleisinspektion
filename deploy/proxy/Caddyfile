@@ -1,0 +1,23 @@
+{
+	# E-Mail für Hinweise von Let's Encrypt (z. B. ablaufende Zertifikate)
+	email {$ACME_EMAIL}
+}
+
+inspektion.askeorail.de {
+	encode zstd gzip
+	request_body {
+		max_size 25MB
+	}
+
+	handle /api/* {
+		reverse_proxy gleisinspektion-api:3000
+	}
+	handle {
+		reverse_proxy gleisinspektion-web:80
+	}
+}
+
+# Beispiel für einen weiteren Dienst:
+# n8n.askeorail.de {
+# 	reverse_proxy n8n:5678
+# }

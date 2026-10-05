@@ -1,0 +1,27 @@
+# Gemeinsamer Webserver für alle Anwendungen auf dem vServer.
+# Holt automatisch HTTPS-Zertifikate (Let's Encrypt) und verteilt die Subdomains an die Container.
+# Weitere Dienste (z. B. n8n) hängen sich an das Netzwerk "proxy" und bekommen einen Block im Caddyfile.
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL in .env setzen}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - proxy
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  proxy:
+    external: true
