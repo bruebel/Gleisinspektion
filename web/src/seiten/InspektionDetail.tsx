@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { aktiv, db, speichere, type Inspektion } from '../db/lokal';
 import { BerichtKnopf } from '../BerichtKnopf';
 import { FotoVorschau } from '../FotoVorschau';
+import { VersandKnopf } from '../VersandKnopf';
 import { Leer, Seitenkopf, TYP_NAMEN, datum, jetztUhrzeit } from '../komponenten';
 
 export function InspektionDetail() {
@@ -106,6 +107,7 @@ export function InspektionDetail() {
 
       <h3>Bericht</h3>
       <BerichtKnopf inspektionId={inspektion.id} />
+      <VersandKnopf inspektionId={inspektion.id} ansprechpartner={ansprechpartner ?? []} />
 
       {offen ? (
         <button type="button" className="primaer abschluss" onClick={() => setzeStatus('abgeschlossen')}>

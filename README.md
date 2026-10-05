@@ -49,4 +49,5 @@ Die erzeugte Migration in `api/drizzle/` mit einchecken; sie wird beim Start der
 - [x] Inspektion und Feststellungen mit Fotos offline erfassen
 - [x] Synchronisation Gerät ↔ Server (beim Öffnen der App, bei Netzrückkehr, nach Änderungen, minütlich)
 - [x] PDF-Bericht
-- [ ] Automatischer Versand, Nachverfolgung, weitere Benutzer
+- [x] Berichtsversand per Mail über Microsoft 365 ([Einrichtung](docs/microsoft-365.md))
+- [ ] Nachverfolgung, weitere Benutzer, Anmeldung mit Microsoft-Konto

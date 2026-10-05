@@ -67,6 +67,8 @@ docker compose logs -f api             # „Admin-Benutzer … angelegt“ und �
 Danach https://inspektion.askeorail.de auf dem Smartphone in Chrome öffnen, anmelden und über das Menü
 **„Zum Startbildschirm hinzufügen“** installieren. `ADMIN_PASSWORT` anschließend aus der `.env` löschen.
 
+Mailversand der Berichte über Microsoft 365 (optional): siehe [microsoft-365.md](microsoft-365.md).
+
 ## 6. Aktualisieren
 
 ```bash

@@ -440,3 +440,18 @@ button.abschluss {
   width: 100%;
   margin-top: 24px;
 }
+
+.versand {
+  margin-top: 8px;
+}
+
+.versand .karte {
+  display: grid;
+  gap: 12px;
+}
+
+.verlauf {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--grau);
+}

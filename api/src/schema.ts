@@ -143,3 +143,15 @@ export const kommentar = pgTable('kommentar', {
     .references(() => benutzer.id),
   text: text('text').notNull(),
 });
+
+// Protokoll der versendeten Berichte. Nur auf dem Server, wird nicht mit den Geräten abgeglichen.
+export const berichtVersand = pgTable('bericht_versand', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  inspektionId: uuid('inspektion_id')
+    .notNull()
+    .references(() => inspektion.id),
+  versendetAm: timestamp('versendet_am', { withTimezone: true }).notNull().defaultNow(),
+  absender: text('absender').notNull(),
+  empfaenger: text('empfaenger').array().notNull(),
+  benutzerId: uuid('benutzer_id').references(() => benutzer.id),
+});
