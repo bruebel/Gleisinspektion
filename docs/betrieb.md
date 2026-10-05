@@ -59,7 +59,7 @@ docker compose up -d
 ```bash
 cd /opt/gleisinspektion/deploy/app
 cp .env.example .env
-nano .env    # POSTGRES_PASSWORD (z. B. aus: openssl rand -base64 32), ADMIN_EMAIL, ADMIN_PASSWORT
+nano .env    # POSTGRES_PASSWORD (z. B. aus: openssl rand -hex 32), ADMIN_EMAIL, ADMIN_PASSWORT
 docker compose up -d --build
 docker compose logs -f api             # „Admin-Benutzer … angelegt“ und „Server listening“
 ```
