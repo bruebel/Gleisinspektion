@@ -1,0 +1,60 @@
+# Gleisinspektion: Datenbank, API und Web-App.
+# Wird über den gemeinsamen Caddy (deploy/proxy) unter https://inspektion.askeorail.de erreichbar.
+name: gleisinspektion
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gleisinspektion
+      POSTGRES_USER: gleisinspektion
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD in .env setzen}
+    volumes:
+      - db_daten:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gleisinspektion"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - intern
+
+  api:
+    build:
+      context: ../..
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    container_name: gleisinspektion-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://gleisinspektion:${POSTGRES_PASSWORD}@db:5432/gleisinspektion
+      PORT: 3000
+      ADMIN_NAME: ${ADMIN_NAME:-Administrator}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORT: ${ADMIN_PASSWORT:-}
+    volumes:
+      - fotos:/daten/fotos
+    networks:
+      - intern
+      - proxy
+
+  web:
+    build:
+      context: ../..
+      dockerfile: web/Dockerfile
+    restart: unless-stopped
+    container_name: gleisinspektion-web
+    networks:
+      - proxy
+
+volumes:
+  db_daten:
+  fotos:
+
+networks:
+  intern:
+  proxy:
+    external: true
