@@ -31,6 +31,8 @@ export const feststellungStatus = pgEnum('feststellung_status', ['offen', 'in_be
 
 export const gleisanschluss = pgTable('gleisanschluss', {
   ...syncSpalten,
+  // Frei wählbares Kurzzeichen (z. B. HAFEN-N); verknüpft die Blätter der Excel-Vorlage beim Import.
+  kuerzel: text('kuerzel').unique(),
   name: text('name').notNull(),
   firma: text('firma'),
   adresse: text('adresse'),

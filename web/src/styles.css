@@ -82,9 +82,13 @@ h2 {
   gap: 8px;
 }
 
-.liste li {
+.liste li,
+.liste .eintrag {
   display: grid;
   gap: 4px;
+}
+
+.liste li {
   padding: 14px 16px;
   background: var(--karte);
   border-radius: 10px;
@@ -152,29 +156,221 @@ label {
   font-weight: 600;
 }
 
-input {
+input,
+select,
+textarea {
   font: inherit;
+  font-weight: 400;
   min-height: 48px;
+  width: 100%;
   padding: 8px 12px;
+  color: var(--text);
+  background: #fff;
   border: 1px solid #b8c2cd;
   border-radius: 8px;
 }
 
-button.primaer {
+textarea {
+  resize: vertical;
+}
+
+input[type='checkbox'] {
+  width: 24px;
+  min-height: 24px;
+}
+
+/* Knöpfe und Links, die wie Knöpfe aussehen */
+button,
+.knopf {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 52px;
+  padding: 0 16px;
   font: inherit;
   font-weight: 600;
-  color: #fff;
-  background: var(--blau);
-  border: 0;
+  color: var(--blau);
+  text-decoration: none;
+  background: var(--karte);
+  border: 1px solid #b8c2cd;
   border-radius: 8px;
 }
 
-button.primaer:disabled {
+button.primaer,
+.knopf.primaer {
+  color: #fff;
+  background: var(--blau);
+  border-color: var(--blau);
+}
+
+button.gefahr {
+  color: var(--rot);
+  border-color: transparent;
+  background: none;
+  margin-top: 24px;
+}
+
+button:disabled {
   opacity: 0.6;
+}
+
+.knopf.gross {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.knopf.klein {
+  min-height: 40px;
+  font-size: 0.85rem;
+}
+
+.seitenkopf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.seitenkopf h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.zurueck {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--blau);
+  text-decoration: none;
+}
+
+.aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.formular {
+  display: grid;
+  gap: 16px;
+}
+
+.zweispaltig {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.schalter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 400;
+}
+
+.feldname {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+h3 {
+  margin: 28px 0 12px;
+}
+
+h4 {
+  margin: 16px 0 8px;
+  color: var(--grau);
+  font-size: 0.9rem;
+}
+
+.karte {
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  background: var(--karte);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.karte p {
+  margin: 0 0 6px;
+}
+
+.klein {
+  font-size: 0.85rem;
+}
+
+.massnahme {
+  color: var(--blau);
+}
+
+.fotoleiste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.vorschau {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #e3e8ee;
+}
+
+.fotoleiste.gross {
+  margin-bottom: 8px;
+}
+
+.fotoleiste.gross .vorschau {
+  width: 96px;
+  height: 96px;
+}
+
+.leer-bild {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--grau);
+}
+
+.foto {
+  position: relative;
+}
+
+.foto button {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--rot);
+  border: 2px solid #fff;
 }
 
 .fehler {
   color: var(--rot);
   margin: 0;
+}
+
+.eintrag {
+  color: inherit;
+  text-decoration: none;
+}
+
+.navigation button {
+  min-height: 56px;
+  border: 0;
+  border-radius: 0;
+  font-weight: 400;
 }

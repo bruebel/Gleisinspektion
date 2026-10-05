@@ -15,6 +15,7 @@ interface SyncFelder {
 }
 
 export interface Gleisanschluss extends SyncFelder {
+  kuerzel?: string | null;
   name: string;
   firma?: string | null;
   adresse?: string | null;
@@ -119,6 +120,9 @@ export class LokaleDatenbank extends Dexie {
       outbox: '++nr, [tabelle+datensatzId]',
       meta: 'schluessel',
     });
+    this.version(2).stores({
+      gleisanschluss: 'id, name, kuerzel',
+    });
   }
 }
 
@@ -153,6 +157,47 @@ export async function speichere<T extends SyncFelder>(
     const offen = await datenbank.outbox.where({ tabelle, datensatzId: id }).first();
     if (!offen) await datenbank.outbox.add({ tabelle, datensatzId: id, zeitpunkt: jetzt });
     return gespeichert;
+  });
+}
+
+/** Markiert einen Datensatz als gelöscht; er wird so auch auf dem Server gelöscht. */
+export async function loesche(tabelle: SyncTabelle, id: string, datenbank: LokaleDatenbank = db) {
+  const vorhanden = await datenbank.table(tabelle).get(id);
+  if (vorhanden) await speichere(tabelle, { ...vorhanden, geloescht: true }, datenbank);
+}
+
+export const aktiv = <T extends { geloescht: boolean }>(liste: T[]) => liste.filter((x) => !x.geloescht);
+
+/** Nächste laufende Nummer für eine neue Feststellung innerhalb einer Inspektion. */
+export async function naechsteLfdNr(inspektionId: string, datenbank: LokaleDatenbank = db): Promise<number> {
+  const letzte = await datenbank.feststellung
+    .where('[inspektionId+lfdNr]')
+    .between([inspektionId, -Infinity], [inspektionId, Infinity])
+    .last();
+  return (letzte?.lfdNr ?? 0) + 1;
+}
+
+/** Legt ein Foto (Metadaten + Bilddatei) zu einer Feststellung an. */
+export async function speichereFoto(
+  feststellungId: string,
+  datei: Blob,
+  reihenfolge: number,
+  datenbank: LokaleDatenbank = db,
+): Promise<Foto> {
+  return datenbank.transaction('rw', datenbank.foto, datenbank.fotoDatei, datenbank.outbox, async () => {
+    const foto = await speichere<Foto>(
+      'foto',
+      {
+        feststellungId,
+        mimeTyp: datei.type || 'image/jpeg',
+        groesse: datei.size,
+        aufgenommenAm: new Date().toISOString(),
+        reihenfolge,
+      },
+      datenbank,
+    );
+    await datenbank.fotoDatei.put({ fotoId: foto.id, datei, hochgeladen: false });
+    return foto;
   });
 }
 
