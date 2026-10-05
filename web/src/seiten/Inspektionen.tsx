@@ -23,9 +23,6 @@ export function Inspektionen() {
           + Neue Inspektion
         </Link>
       </div>
-      <p className="hinweis klein">
-        Die Daten werden auf diesem Gerät gespeichert. Das Hochladen zum Server kommt mit dem nächsten Ausbauschritt.
-      </p>
       {inspektionen.length === 0 ? (
         <Leer>Noch keine Inspektionen erfasst.</Leer>
       ) : (

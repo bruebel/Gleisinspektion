@@ -59,6 +59,23 @@ body {
 .status.offline {
   background: var(--rot);
 }
+.status.warnung {
+  background: #a15c00;
+}
+button.status {
+  min-height: 0;
+  color: #fff;
+  font-weight: 400;
+  border: 0;
+}
+
+.hinweisleiste {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  color: #5c3700;
+  background: #fff4cc;
+}
 
 .inhalt {
   flex: 1;
