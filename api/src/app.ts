@@ -6,6 +6,8 @@ import { beendeSitzung, benutzerZuToken, erstelleSitzung, pruefePasswort } from 
 import { benutzer } from './schema.js';
 import { erstelleBericht } from './bericht.js';
 import { registriereSync } from './sync.js';
+import type { Mailer } from './mail.js';
+import { registriereVersand } from './versand.js';
 
 export type AngemeldeterBenutzer = NonNullable<Awaited<ReturnType<typeof benutzerZuToken>>>;
 
@@ -22,7 +24,7 @@ const bearerToken = (req: FastifyRequest) => {
 
 export function baueApp(
   db: Db,
-  optionen: { logger?: boolean; corsOrigin?: string; fotoOrdner?: string } = {},
+  optionen: { logger?: boolean; corsOrigin?: string; fotoOrdner?: string; mailer?: Mailer | null } = {},
 ) {
   const app = Fastify({ logger: optionen.logger ?? false });
 
@@ -46,6 +48,7 @@ export function baueApp(
 
   const fotoOrdner = optionen.fotoOrdner ?? process.env.FOTO_ORDNER ?? './data/fotos';
   registriereSync(app, db, { fotoOrdner, nurBerechtigt: nurInspektoren });
+  registriereVersand(app, db, { mailer: optionen.mailer ?? null, fotoOrdner, nurBerechtigt: nurInspektoren });
 
   app.get<{ Params: { id: string } }>(
     '/api/inspektionen/:id/bericht.pdf',

@@ -35,6 +35,11 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-Administrator}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORT: ${ADMIN_PASSWORT:-}
+      # Mailversand über Microsoft 365, Einrichtung siehe docs/microsoft-365.md
+      MS_TENANT_ID: ${MS_TENANT_ID:-}
+      MS_CLIENT_ID: ${MS_CLIENT_ID:-}
+      MS_CLIENT_SECRET: ${MS_CLIENT_SECRET:-}
+      MAIL_ABSENDER: ${MAIL_ABSENDER:-}
     volumes:
       - fotos:/daten/fotos
     networks:

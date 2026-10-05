@@ -29,7 +29,7 @@ pdfmake.setLocalAccessPolicy((pfad) => pfad.startsWith(schriften));
 const BLAU = '#23566c';
 const GELB = '#ffec00';
 const GRAU = '#5a6468';
-const FIRMA = 'askeo rail GmbH · August-Horch-Str. 18 · 55129 Mainz · +49 6131 27675-20 · info@askeorail.de';
+export const FIRMA = 'askeo rail GmbH · August-Horch-Str. 18 · 55129 Mainz · +49 6131 27675-20 · info@askeorail.de';
 const TYP_NAMEN = { gleis: 'Gleis', weiche: 'Weiche', signal: 'Signal', bauwerk: 'Bauwerk', sonstiges: '' } as const;
 const BILDFORMATE = new Set(['image/jpeg', 'image/png']);
 
@@ -220,5 +220,17 @@ export async function erstelleBericht(db: Db, inspektionId: string, fotoOrdner: 
 
   const pdf = await pdfmake.createPdf(definition).getBuffer();
   const name = (anschluss?.kuerzel || anschluss?.name || 'Begehung').replace(/[^\p{L}\p{N}-]+/gu, '_');
-  return { pdf, dateiname: `Begehung_${name}_${inspektion.datum}.pdf` };
+  return {
+    pdf,
+    dateiname: `Begehung_${name}_${inspektion.datum}.pdf`,
+    // Für den Mailversand: Betreff und Anschreiben.
+    angaben: {
+      anschluss: anschluss?.name ?? '',
+      kuerzel: anschluss?.kuerzel ?? null,
+      datum: inspektion.datum,
+      art: inspektion.art,
+      durchfuehrender: inspektion.durchfuehrender,
+      feststellungen: feststellungen.length,
+    },
+  };
 }

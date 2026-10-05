@@ -1,6 +1,7 @@
 import { baueApp } from './app.js';
 import { legeAdminAn } from './auth.js';
 import { verbindeDatenbank } from './db.js';
+import { graphKonfigurationAusUmgebung, graphMailer } from './mail.js';
 
 const env = (name: string, standard?: string) => {
   const wert = process.env[name] ?? standard;
@@ -19,7 +20,10 @@ if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORT) {
   if (angelegt) console.log(`Admin-Benutzer ${process.env.ADMIN_EMAIL} angelegt`);
 }
 
-const app = baueApp(db, { logger: true, corsOrigin: process.env.CORS_ORIGIN });
+const graph = graphKonfigurationAusUmgebung();
+console.log(graph ? `Mailversand über Microsoft 365 als ${graph.absender}` : 'Mailversand nicht eingerichtet (MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET, MAIL_ABSENDER)');
+
+const app = baueApp(db, { logger: true, corsOrigin: process.env.CORS_ORIGIN, mailer: graph && graphMailer(graph) });
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, async () => {
