@@ -4,6 +4,8 @@ Die App verschickt Begehungsberichte über Microsoft Graph aus **einem** festgel
 Die Mails erscheinen dort unter „Gesendete Elemente“. Auf dem Server liegt kein Postfach-Passwort,
 nur ein App-Schlüssel, der ausschließlich aus diesem einen Postfach senden darf.
 
+Die App braucht dafür in Exchange zwei Rechte für dieses Postfach: **Mail.Send** und **Mail.ReadWrite**.
+
 Benötigt: ein Konto mit den Rollen **Anwendungsadministrator** (Entra) und **Exchange-Administrator**
 (oder globaler Administrator). Dauer: etwa 15 Minuten, danach bis zu 2 Stunden, bis Microsoft die
 Berechtigung überall verteilt hat.
@@ -28,7 +30,7 @@ Im Folgenden steht `vorname.nachname@askeorail.de` für das Absender-Postfach.
    - Ablaufdatum im Kalender eintragen: danach muss ein neuer Schlüssel erstellt und in die `.env` eingetragen werden.
 5. **API-Berechtigungen:** hier **nichts** hinzufügen. Insbesondere **nicht** `Mail.Send` als
    Anwendungsberechtigung erteilen: Das würde der App erlauben, aus *jedem* Postfach der Firma zu senden.
-   Die Berechtigung wird stattdessen in Teil B auf das eine Postfach beschränkt vergeben.
+   Die Berechtigungen werden stattdessen in Teil B auf das eine Postfach beschränkt vergeben.
 6. **Anwendungen → Unternehmensanwendungen** → `Gleisinspektion` öffnen und die **Objekt-ID** notieren.
    (Achtung: Das ist eine andere Objekt-ID als die auf der Seite der App-Registrierung.)
 
@@ -48,10 +50,12 @@ New-ServicePrincipal -AppId <MS_CLIENT_ID> -ObjectId <Objekt-ID aus A6> -Display
 # Bereich: nur das Absender-Postfach
 New-ManagementScope -Name "Gleisinspektion Absender" -RecipientRestrictionFilter "PrimarySmtpAddress -eq 'vorname.nachname@askeorail.de'"
 
-# Senderecht nur innerhalb dieses Bereichs
+# Rechte nur innerhalb dieses Bereichs. Beide sind nötig: Die App legt die Mail erst als Entwurf an
+# (Mail.ReadWrite), hängt das PDF an – auch große Berichte über 3 MB – und sendet sie dann (Mail.Send).
 New-ManagementRoleAssignment -App <MS_CLIENT_ID> -Role "Application Mail.Send" -CustomResourceScope "Gleisinspektion Absender"
+New-ManagementRoleAssignment -App <MS_CLIENT_ID> -Role "Application Mail.ReadWrite" -CustomResourceScope "Gleisinspektion Absender"
 
-# Prüfen: InScope muss True sein
+# Prüfen: bei beiden Rollen muss InScope True sein
 Test-ServicePrincipalAuthorization -Identity <MS_CLIENT_ID> -Resource vorname.nachname@askeorail.de
 ```
 
@@ -86,5 +90,6 @@ In der App eine Begehung öffnen → **Bericht per Mail versenden** → nur die 
 |---|---|
 | „Der Mailversand ist auf dem Server noch nicht eingerichtet.“ | Eine der vier Variablen fehlt in der `.env`, oder der Container wurde nicht neu gestartet. |
 | „Anmeldung bei Microsoft fehlgeschlagen (401) … invalid_client“ | Schlüssel falsch kopiert (Geheimnis-ID statt Wert) oder abgelaufen → neuen Schlüssel erstellen (A4). |
-| „… (403): Access is denied“ / „ErrorAccessDenied“ | Teil B fehlt, betrifft ein anderes Postfach als `MAIL_ABSENDER`, oder ist noch nicht verteilt (bis zu 2 Stunden warten). |
+| „… (403): Access is denied“ / „ErrorAccessDenied“ | Teil B fehlt (beide Rollen, Mail.Send **und** Mail.ReadWrite), betrifft ein anderes Postfach als `MAIL_ABSENDER`, oder ist noch nicht verteilt (bis zu 2 Stunden warten). |
+| `New-ServicePrincipal` verwechselt | `-AppId` ist die Anwendungs-ID (Client), `-ObjectId` die Objekt-ID unter **Unternehmensanwendungen** – nicht die Objekt-ID der App-Registrierung. Prüfen mit `Get-ServicePrincipal \| fl DisplayName,AppId,ObjectId`. |
 | „… (404) … ResourceNotFound / MailboxNotEnabledForRESTAPI“ | `MAIL_ABSENDER` ist kein Exchange-Online-Postfach oder falsch geschrieben. |
