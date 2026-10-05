@@ -15,6 +15,7 @@ import { Import } from './seiten/Import';
 import { InspektionDetail } from './seiten/InspektionDetail';
 import { InspektionFormular } from './seiten/InspektionFormular';
 import { Inspektionen } from './seiten/Inspektionen';
+import logoWeiss from './marke/askeorail-logo-weiss.svg';
 
 export function App() {
   const [benutzer, setBenutzer] = useState<Benutzer | null>(() => gespeicherteAnmeldung()?.benutzer ?? null);
@@ -29,7 +30,10 @@ export function App() {
   return (
     <div className="app">
       <header className="kopf">
-        <h1>Gleisinspektion</h1>
+        <h1>
+          <img src={logoWeiss} alt="AskeoRail" />
+          <span>Gleisinspektion</span>
+        </h1>
         <button
           type="button"
           className={`status ${!online ? 'offline' : sync.fehler ? 'warnung' : 'online'}`}

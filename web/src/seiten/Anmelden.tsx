@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { anmelden, type Benutzer } from '../api';
+import logo from '../marke/askeorail-logo.svg';
 
 export function Anmelden({ onAngemeldet }: { onAngemeldet: (b: Benutzer) => void }) {
   const [email, setEmail] = useState('');
@@ -22,7 +23,10 @@ export function Anmelden({ onAngemeldet }: { onAngemeldet: (b: Benutzer) => void
 
   return (
     <form className="anmelden" onSubmit={absenden}>
-      <h1>Gleisinspektion</h1>
+      <h1>
+        <img src={logo} alt="AskeoRail" />
+        Gleisinspektion
+      </h1>
       <p className="hinweis">Einmal mit Netz anmelden – danach funktioniert die App auch offline.</p>
       <label>
         E-Mail
