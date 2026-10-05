@@ -1,14 +1,16 @@
 /* Große Schrift und Bedienelemente, hoher Kontrast: die App wird draußen und mit Handschuhen benutzt. */
+/* Farben nach askeorail.de: Petrol als Hausfarbe, Gelb für Hauptaktionen (mit schwarzer Schrift). */
 :root {
-  --blau: #1f3a5f;
-  --gelb: #f2b705;
-  --hintergrund: #f4f6f8;
+  --blau: #23566c;
+  --blau-hell: #2c6c88;
+  --gelb: #ffec00;
+  --hintergrund: #f3f5f6;
   --karte: #ffffff;
-  --text: #16202c;
-  --grau: #5b6775;
+  --text: #1d1d1b;
+  --grau: #5a6468;
   --gruen: #1e7d3a;
   --rot: #b3261e;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 18px;
   color: var(--text);
   background: var(--hintergrund);
@@ -43,8 +45,30 @@ body {
 }
 
 .kopf h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.kopf h1 img {
+  display: block;
+  height: 26px;
+  width: auto;
+}
+
+.kopf h1 span {
+  padding-left: 10px;
+  border-left: 1px solid rgb(255 255 255 / 0.5);
+}
+
+/* Auf schmalen Handys braucht die Statusanzeige den Platz; das Logo bleibt. */
+@media (max-width: 440px) {
+  .kopf h1 span {
+    display: none;
+  }
 }
 
 .status {
@@ -163,8 +187,16 @@ h2 {
 }
 
 .anmelden h1 {
-  margin: 0;
+  display: grid;
+  gap: 12px;
+  margin: 0 0 8px;
   color: var(--blau);
+  font-size: 1.6rem;
+}
+
+.anmelden h1 img {
+  width: 200px;
+  height: auto;
 }
 
 label {
@@ -210,14 +242,15 @@ button,
   text-decoration: none;
   background: var(--karte);
   border: 1px solid #b8c2cd;
-  border-radius: 8px;
+  border-radius: 999px;
 }
 
+/* Hauptaktion wie die Knöpfe auf askeorail.de: gelbe Pille mit schwarzer Schrift */
 button.primaer,
 .knopf.primaer {
-  color: #fff;
-  background: var(--blau);
-  border-color: var(--blau);
+  color: #000;
+  background: var(--gelb);
+  border-color: var(--gelb);
 }
 
 button.gefahr {

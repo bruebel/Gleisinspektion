@@ -5,25 +5,31 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import pdfmake from 'pdfmake';
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces.js';
 import type { Db } from './db.js';
+import { LOGO_SVG } from './marke.js';
 import * as s from './schema.js';
 
 // PDF-Bericht einer Inspektion: Kopfdaten, Ansprechpartner, Tabelle der Feststellungen und Fotoanhang.
 
-const roboto = join(dirname(createRequire(import.meta.url).resolve('pdfmake/package.json')), 'fonts', 'Roboto');
+// Schrift wie in der App: Hanken Grotesk (frei, ähnlich der Lab Grotesque von askeorail.de).
+const schriften = join(dirname(createRequire(import.meta.url).resolve('@fontsource/hanken-grotesk/package.json')), 'files');
+const schrift = (schnitt: string) => join(schriften, `hanken-grotesk-latin-${schnitt}.woff`);
 pdfmake.addFonts({
-  Roboto: {
-    normal: join(roboto, 'Roboto-Regular.ttf'),
-    bold: join(roboto, 'Roboto-Medium.ttf'),
-    italics: join(roboto, 'Roboto-Italic.ttf'),
-    bolditalics: join(roboto, 'Roboto-MediumItalic.ttf'),
+  Hanken: {
+    normal: schrift('400-normal'),
+    bold: schrift('600-normal'),
+    italics: schrift('400-italic'),
+    bolditalics: schrift('600-italic'),
   },
 });
 // Bilder werden nur als Daten übergeben; außer den Schriften darf das Dokument keine Dateien oder URLs laden.
 pdfmake.setUrlAccessPolicy(() => false);
-pdfmake.setLocalAccessPolicy((pfad) => pfad.startsWith(roboto));
+pdfmake.setLocalAccessPolicy((pfad) => pfad.startsWith(schriften));
 
-const BLAU = '#1f3a5f';
-const GRAU = '#5b6775';
+// Hausfarben von askeorail.de
+const BLAU = '#23566c';
+const GELB = '#ffec00';
+const GRAU = '#5a6468';
+const FIRMA = 'askeo rail GmbH · August-Horch-Str. 18 · 55129 Mainz · +49 6131 27675-20 · info@askeorail.de';
 const TYP_NAMEN = { gleis: 'Gleis', weiche: 'Weiche', signal: 'Signal', bauwerk: 'Bauwerk', sonstiges: '' } as const;
 const BILDFORMATE = new Set(['image/jpeg', 'image/png']);
 
@@ -78,7 +84,13 @@ export async function erstelleBericht(db: Db, inspektionId: string, fotoOrdner: 
   ];
 
   const inhalt: Content[] = [
-    { text: 'Bericht Gleisinspektion', style: 'titel' },
+    {
+      columns: [
+        { text: 'Bericht Gleisinspektion', style: 'titel' },
+        { svg: LOGO_SVG, width: 130, alignment: 'right' },
+      ],
+    },
+    { canvas: [{ type: 'rect', x: 0, y: 0, w: 60, h: 4, color: GELB }], margin: [0, 0, 0, 14] },
     {
       table: {
         widths: [110, '*'],
@@ -178,9 +190,9 @@ export async function erstelleBericht(db: Db, inspektionId: string, fotoOrdner: 
     pageSize: 'A4',
     pageMargins: [40, 50, 40, 50],
     info: { title: `Gleisinspektion ${anschluss?.name ?? ''} ${datumDe(inspektion.datum)}`, author: inspektion.durchfuehrender },
-    defaultStyle: { font: 'Roboto', fontSize: 10, lineHeight: 1.2 },
+    defaultStyle: { font: 'Hanken', fontSize: 10, lineHeight: 1.2 },
     styles: {
-      titel: { fontSize: 18, bold: true, color: BLAU, margin: [0, 0, 0, 12] },
+      titel: { fontSize: 18, bold: true, color: BLAU, margin: [0, 8, 0, 8] },
       ueberschrift: { fontSize: 13, bold: true, color: BLAU, margin: [0, 14, 0, 6] },
       etikett: { color: GRAU },
       tabellenkopf: { bold: true, color: BLAU },
@@ -191,11 +203,16 @@ export async function erstelleBericht(db: Db, inspektionId: string, fotoOrdner: 
         ? { text: `${anschluss?.name ?? ''} · ${datumDe(inspektion.datum)}`, fontSize: 8, color: GRAU, margin: [40, 25, 40, 0] }
         : null,
     footer: (seite, seiten) => ({
-      columns: [
-        { text: `Erstellt am ${erstellt}`, fontSize: 8, color: GRAU },
-        { text: `Seite ${seite} von ${seiten}`, fontSize: 8, color: GRAU, alignment: 'right' },
+      stack: [
+        { text: FIRMA, fontSize: 7, color: BLAU, margin: [0, 0, 0, 2] },
+        {
+          columns: [
+            { text: `Erstellt am ${erstellt}`, fontSize: 8, color: GRAU },
+            { text: `Seite ${seite} von ${seiten}`, fontSize: 8, color: GRAU, alignment: 'right' },
+          ],
+        },
       ],
-      margin: [40, 15, 40, 0],
+      margin: [40, 10, 40, 0],
     }),
     content: inhalt,
   };
