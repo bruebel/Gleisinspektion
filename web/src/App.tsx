@@ -64,7 +64,7 @@ export function App() {
 
       <nav className="navigation">
         <NavLink to="/" end className={({ isActive }) => (isActive || location.pathname.startsWith('/inspektionen') ? 'active' : '')}>
-          Inspektionen
+          Begehungen
         </NavLink>
         <NavLink to="/gleisanschluesse">Gleisanschlüsse</NavLink>
         <button

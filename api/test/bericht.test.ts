@@ -51,6 +51,7 @@ let client: PGlite;
 let app: ReturnType<typeof baueApp>;
 let fotoOrdner: string;
 let auth: { authorization: string };
+let gaId: string; // Gleisanschluss aus dem ersten Test, wird im zweiten wiederverwendet
 
 beforeAll(async () => {
   client = new PGlite();
@@ -79,9 +80,10 @@ describe('PDF-Bericht', () => {
   it('erzeugt einen Bericht mit Feststellungen und Fotos', async () => {
     const jetzt = new Date().toISOString();
     const ga = { id: crypto.randomUUID(), name: 'Anschlussbahn Hafen Nord', kuerzel: 'HAFEN-N', firma: 'Muster Logistik GmbH', aktiv: true, geaendertAm: jetzt };
+    gaId = ga.id;
     const weiche = { id: crypto.randomUUID(), gleisanschlussId: ga.id, typ: 'weiche', bezeichnung: 'W 1', sortierung: 10, aktiv: true, geaendertAm: jetzt };
     const ap = { id: crypto.randomUUID(), gleisanschlussId: ga.id, name: 'Max Mustermann', funktion: 'EBL', email: 'max@example.de', erhaeltBericht: true, geaendertAm: jetzt };
-    const insp = { id: crypto.randomUUID(), gleisanschlussId: ga.id, datum: '2026-10-05', beginn: '09:30', ende: '11:15', durchfuehrender: 'Benjamin', status: 'abgeschlossen', geaendertAm: jetzt };
+    const insp = { id: crypto.randomUUID(), gleisanschlussId: ga.id, art: 'Regelbegehung', datum: '2026-10-05', beginn: '09:30', ende: '11:15', durchfuehrender: 'Benjamin', status: 'abgeschlossen', geaendertAm: jetzt };
     const f1 = { id: crypto.randomUUID(), inspektionId: insp.id, lfdNr: 1, infrastrukturelementId: weiche.id, feststellung: 'Zungenspitze abgenutzt, Grat sichtbar', massnahme: 'Zunge schleifen', frist: '2026-11-30', zustaendig: 'Max Mustermann', status: 'offen', geaendertAm: jetzt };
     const f2 = { id: crypto.randomUUID(), inspektionId: insp.id, lfdNr: 2, ort: 'Gleis 1, km 0,350', feststellung: 'Schwellen 3–5 lose', massnahme: 'Befestigung nachziehen', status: 'offen', geaendertAm: jetzt };
     const fotos = [0, 1, 2].map((i) => ({ id: crypto.randomUUID(), feststellungId: i < 2 ? f1.id : f2.id, mimeTyp: 'image/png', reihenfolge: i, geaendertAm: jetzt }));
@@ -107,10 +109,20 @@ describe('PDF-Bericht', () => {
     const res = await app.inject({ method: 'GET', url: `/api/inspektionen/${insp.id}/bericht.pdf`, headers: auth });
     expect(res.statusCode, res.body.slice(0, 300)).toBe(200);
     expect(res.headers['content-type']).toBe('application/pdf');
-    expect(res.headers['content-disposition']).toContain('Gleisinspektion_HAFEN-N_2026-10-05.pdf');
+    expect(res.headers['content-disposition']).toContain('Begehung_HAFEN-N_2026-10-05.pdf');
     expect(res.rawPayload.subarray(0, 5).toString()).toBe('%PDF-');
     expect(res.rawPayload.length).toBeGreaterThan(20_000);
     if (process.env.BERICHT_AUSGABE) await writeFile(process.env.BERICHT_AUSGABE, res.rawPayload);
+  });
+
+  it('erstellt einen Bericht für eine Begehung ohne Feststellungen', async () => {
+    const ohne = { id: crypto.randomUUID(), gleisanschlussId: gaId, datum: '2026-10-06', durchfuehrender: 'Benjamin', status: 'abgeschlossen', geaendertAm: new Date().toISOString() };
+    const push = await app.inject({ method: 'POST', url: '/api/sync/push', headers: auth, payload: { aenderungen: [{ tabelle: 'inspektion', datensatz: ohne }] } });
+    expect(push.json().fehler).toEqual([]);
+    const res = await app.inject({ method: 'GET', url: `/api/inspektionen/${ohne.id}/bericht.pdf`, headers: auth });
+    expect(res.statusCode).toBe(200);
+    expect(res.rawPayload.subarray(0, 5).toString()).toBe('%PDF-');
+    if (process.env.BERICHT_LEER) await writeFile(process.env.BERICHT_LEER, res.rawPayload);
   });
 
   it('liefert 404 für unbekannte Inspektionen und 401 ohne Anmeldung', async () => {

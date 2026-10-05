@@ -46,6 +46,7 @@ export interface Inspektion extends SyncFelder {
   datum: string; // JJJJ-MM-TT
   beginn?: string | null; // HH:MM
   ende?: string | null;
+  art?: string | null;
   durchfuehrender: string;
   teilnehmer?: string | null;
   bemerkung?: string | null;

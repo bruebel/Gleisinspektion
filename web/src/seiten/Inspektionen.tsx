@@ -17,14 +17,14 @@ export function Inspektionen() {
 
   return (
     <section>
-      <Seitenkopf titel="Inspektionen" />
+      <Seitenkopf titel="Begehungen" />
       <div className="aktionen">
         <Link to="/inspektionen/neu" className="knopf primaer">
-          + Neue Inspektion
+          + Neue Begehung
         </Link>
       </div>
       {inspektionen.length === 0 ? (
-        <Leer>Noch keine Inspektionen erfasst.</Leer>
+        <Leer>Noch keine Begehungen erfasst.</Leer>
       ) : (
         <ul className="liste">
           {inspektionen.map((i) => (
@@ -32,6 +32,7 @@ export function Inspektionen() {
               <Link to={`/inspektionen/${i.id}`} className="eintrag">
                 <strong>{nameVon(i.gleisanschlussId)}</strong>
                 <span>
+                  {i.art && `${i.art} · `}
                   {datum(i.datum)}
                   {i.beginn && `, ${i.beginn}${i.ende ? `–${i.ende}` : ''} Uhr`} · {i.durchfuehrender}
                 </span>

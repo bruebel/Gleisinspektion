@@ -56,7 +56,7 @@ export function AnsprechpartnerFormular() {
             checked={werte.erhaeltBericht}
             onChange={(e) => setWerte({ ...werte, erhaeltBericht: e.target.checked })}
           />
-          Erhält den Inspektionsbericht
+          Erhält den Begehungsbericht
         </label>
         <button type="submit" className="primaer">
           Speichern

@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { gespeicherteAnmeldung } from '../api';
 import { aktiv, db, loesche, speichere, type Inspektion } from '../db/lokal';
-import { Feld, Seitenkopf, Textfeld, heute, jetztUhrzeit, leerZuNull } from '../komponenten';
+import { Feld, PRUEFARTEN, Seitenkopf, Textfeld, heute, jetztUhrzeit, leerZuNull } from '../komponenten';
 
 export function InspektionFormular() {
   const { id } = useParams();
@@ -13,6 +13,7 @@ export function InspektionFormular() {
   const anschluesse = useLiveQuery(async () => aktiv(await db.gleisanschluss.orderBy('name').toArray()));
   const [werte, setWerte] = useState({
     gleisanschlussId: '',
+    art: PRUEFARTEN[0],
     datum: heute(),
     beginn: jetztUhrzeit(),
     ende: '',
@@ -25,6 +26,7 @@ export function InspektionFormular() {
     if (vorhanden)
       setWerte({
         gleisanschlussId: vorhanden.gleisanschlussId,
+        art: vorhanden.art ?? '',
         datum: vorhanden.datum,
         beginn: vorhanden.beginn ?? '',
         ende: vorhanden.ende ?? '',
@@ -42,6 +44,7 @@ export function InspektionFormular() {
     const gespeichert = await speichere<Inspektion>('inspektion', {
       ...(vorhanden ?? { status: 'entwurf' }),
       gleisanschlussId: werte.gleisanschlussId,
+      art: leerZuNull(werte.art),
       datum: werte.datum,
       beginn: leerZuNull(werte.beginn),
       ende: leerZuNull(werte.ende),
@@ -57,7 +60,7 @@ export function InspektionFormular() {
   if (anschluesse.length === 0)
     return (
       <section>
-        <Seitenkopf titel="Neue Inspektion" zurueck="/" />
+        <Seitenkopf titel="Neue Begehung" zurueck="/" />
         <p className="leer">
           Lege zuerst einen <Link to="/gleisanschluesse">Gleisanschluss</Link> an oder importiere die Excel-Vorlage.
         </p>
@@ -66,7 +69,7 @@ export function InspektionFormular() {
 
   return (
     <section>
-      <Seitenkopf titel={neu ? 'Neue Inspektion' : 'Inspektion bearbeiten'} zurueck={neu ? '/' : `/inspektionen/${id}`} />
+      <Seitenkopf titel={neu ? 'Neue Begehung' : 'Begehung bearbeiten'} zurueck={neu ? '/' : `/inspektionen/${id}`} />
       <form className="formular" onSubmit={absenden}>
         <label>
           Gleisanschluss *
@@ -79,6 +82,15 @@ export function InspektionFormular() {
             ))}
           </select>
         </label>
+        <label>
+          Art der Prüfung
+          <select value={werte.art} onChange={setze('art')}>
+            {!werte.art && <option value="">Keine Angabe</option>}
+            {PRUEFARTEN.map((a) => (
+              <option key={a}>{a}</option>
+            ))}
+          </select>
+        </label>
         <Feld label="Datum *" type="date" value={werte.datum} onChange={setze('datum')} required />
         <div className="zweispaltig">
           <Feld label="Beginn" type="time" value={werte.beginn} onChange={setze('beginn')} />
@@ -88,19 +100,19 @@ export function InspektionFormular() {
         <Feld label="Weitere Teilnehmer" value={werte.teilnehmer} onChange={setze('teilnehmer')} />
         <Textfeld label="Bemerkung" value={werte.bemerkung} onChange={setze('bemerkung')} />
         <button type="submit" className="primaer">
-          {neu ? 'Inspektion beginnen' : 'Speichern'}
+          {neu ? 'Begehung beginnen' : 'Speichern'}
         </button>
         {!neu && (
           <button
             type="button"
             className="gefahr"
             onClick={async () => {
-              if (!confirm('Inspektion mit allen Feststellungen löschen?')) return;
+              if (!confirm('Begehung mit allen Feststellungen löschen?')) return;
               await loesche('inspektion', id!);
               navigate('/', { replace: true });
             }}
           >
-            Inspektion löschen
+            Begehung löschen
           </button>
         )}
       </form>

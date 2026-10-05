@@ -9,6 +9,9 @@ export const TYP_NAMEN: Record<ElementTyp, string> = {
   bauwerk: 'Bauwerk / markanter Punkt',
   sonstiges: 'Sonstiges',
 };
+/** Auswahl für die Art der Prüfung einer Begehung. */
+export const PRUEFARTEN = ['Regelbegehung', 'Sonderbegehung', 'Abnahmeprüfung', 'Nachkontrolle Mängelbeseitigung'];
+
 export const TYP_REIHENFOLGE = Object.keys(TYP_NAMEN) as ElementTyp[];
 
 const datumFormat = new Intl.DateTimeFormat('de-DE', { dateStyle: 'medium' });

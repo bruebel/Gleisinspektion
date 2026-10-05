@@ -92,6 +92,8 @@ export const inspektion = pgTable('inspektion', {
   datum: date('datum').notNull(),
   beginn: time('beginn'),
   ende: time('ende'),
+  // Art der Prüfung, z. B. Regelbegehung; frei als Text, damit die Auswahlliste ohne Migration wachsen kann.
+  art: text('art'),
   durchfuehrender: text('durchfuehrender').notNull(),
   durchfuehrenderId: uuid('durchfuehrender_id').references(() => benutzer.id),
   teilnehmer: text('teilnehmer'),

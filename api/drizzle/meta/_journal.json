@@ -15,6 +15,13 @@
       "when": 1791193593597,
       "tag": "0001_kuerzel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791199018603,
+      "tag": "0002_art",
+      "breakpoints": true
     }
   ]
 }

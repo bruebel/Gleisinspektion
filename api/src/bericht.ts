@@ -8,7 +8,7 @@ import type { Db } from './db.js';
 import { LOGO_SVG } from './marke.js';
 import * as s from './schema.js';
 
-// PDF-Bericht einer Inspektion: Kopfdaten, Ansprechpartner, Tabelle der Feststellungen und Fotoanhang.
+// PDF-Bericht einer Begehung (intern: Inspektion): Kopfdaten, Ansprechpartner, Tabelle der Feststellungen und Fotoanhang.
 
 // Schrift wie in der App: Hanken Grotesk (frei, ähnlich der Lab Grotesque von askeorail.de).
 const schriften = join(dirname(createRequire(import.meta.url).resolve('@fontsource/hanken-grotesk/package.json')), 'files');
@@ -77,6 +77,7 @@ export async function erstelleBericht(db: Db, inspektionId: string, fotoOrdner: 
     ['Gleisanschluss', [anschluss?.name, anschluss?.kuerzel && `(${anschluss.kuerzel})`].filter(Boolean).join(' ')],
     ['Betreiber', anschluss?.firma ?? ''],
     ['Adresse', anschluss?.adresse ?? ''],
+    ['Art der Prüfung', inspektion.art ?? ''],
     ['Datum', datumDe(inspektion.datum)],
     ['Zeitraum', zeitraum ? `${zeitraum} Uhr` : ''],
     ['Durchführender', inspektion.durchfuehrender],
@@ -86,7 +87,7 @@ export async function erstelleBericht(db: Db, inspektionId: string, fotoOrdner: 
   const inhalt: Content[] = [
     {
       columns: [
-        { text: 'Bericht Gleisinspektion', style: 'titel' },
+        { text: 'Begehungsbericht', style: 'titel' },
         { svg: LOGO_SVG, width: 130, alignment: 'right' },
       ],
     },
@@ -120,7 +121,7 @@ export async function erstelleBericht(db: Db, inspektionId: string, fotoOrdner: 
 
   inhalt.push({ text: `Feststellungen (${feststellungen.length})`, style: 'ueberschrift' });
   if (feststellungen.length === 0) {
-    inhalt.push({ text: 'Keine Feststellungen.', color: GRAU });
+    inhalt.push({ text: 'Bei der Begehung wurden keine Mängel festgestellt.' });
   } else {
     inhalt.push({
       table: {
@@ -189,7 +190,7 @@ export async function erstelleBericht(db: Db, inspektionId: string, fotoOrdner: 
   const definition: TDocumentDefinitions = {
     pageSize: 'A4',
     pageMargins: [40, 50, 40, 50],
-    info: { title: `Gleisinspektion ${anschluss?.name ?? ''} ${datumDe(inspektion.datum)}`, author: inspektion.durchfuehrender },
+    info: { title: `${inspektion.art ?? 'Begehung'} ${anschluss?.name ?? ''} ${datumDe(inspektion.datum)}`, author: inspektion.durchfuehrender },
     defaultStyle: { font: 'Hanken', fontSize: 10, lineHeight: 1.2 },
     styles: {
       titel: { fontSize: 18, bold: true, color: BLAU, margin: [0, 8, 0, 8] },
@@ -218,6 +219,6 @@ export async function erstelleBericht(db: Db, inspektionId: string, fotoOrdner: 
   };
 
   const pdf = await pdfmake.createPdf(definition).getBuffer();
-  const name = (anschluss?.kuerzel || anschluss?.name || 'Inspektion').replace(/[^\p{L}\p{N}-]+/gu, '_');
-  return { pdf, dateiname: `Gleisinspektion_${name}_${inspektion.datum}.pdf` };
+  const name = (anschluss?.kuerzel || anschluss?.name || 'Begehung').replace(/[^\p{L}\p{N}-]+/gu, '_');
+  return { pdf, dateiname: `Begehung_${name}_${inspektion.datum}.pdf` };
 }
