@@ -12,7 +12,7 @@ import { erstelleSitzung, hashPasswort } from '../../api/src/auth';
 import { migrationsOrdner, type Db } from '../../api/src/db';
 import * as schema from '../../api/src/schema';
 import { LokaleDatenbank, speichere, speichereFoto, type Feststellung, type Gleisanschluss, type Inspektion } from '../src/db/lokal';
-import { synchronisiere, syncZustand } from '../src/sync';
+import { neuSynchronisieren, synchronisiere, syncZustand } from '../src/sync';
 
 let pg: PGlite;
 let app: ReturnType<typeof baueApp>;
@@ -112,6 +112,31 @@ describe('Abgleich Gerät ↔ Server', () => {
     await synchronisiere({ datenbank: handy, abruf: kaputt, token });
     expect(syncZustand.lesen().fehler).toBe('Server nicht erreichbar');
     expect(await handy.outbox.count()).toBe(1);
+  });
+
+  it('bricht eine hängende Anfrage ab, damit der nächste Abgleich wieder durchgeht', async () => {
+    await speichere<Gleisanschluss>('gleisanschluss', { name: 'Funkloch', aktiv: true }, handy);
+    // WLAN verbunden, aber keine Antwort: die Anfrage kehrt nie zurück und beachtet auch kein Signal.
+    const haengt = (() => new Promise<Response>(() => undefined)) as unknown as typeof fetch;
+    await synchronisiere({ datenbank: handy, abruf: haengt, token, zeitlimit: 50 });
+    expect(syncZustand.lesen()).toMatchObject({ laeuft: false, fehler: 'Keine Antwort vom Server (schwaches Netz?)' });
+    expect(await handy.outbox.count()).toBeGreaterThan(0);
+
+    await synchronisiere({ datenbank: handy, abruf, token });
+    expect(syncZustand.lesen().fehler).toBeNull();
+    expect(await handy.outbox.count()).toBe(0);
+  });
+
+  it('startet bei Netzwechsel sofort neu, statt auf die hängende Verbindung zu warten', async () => {
+    await speichere<Gleisanschluss>('gleisanschluss', { name: 'Netzwechsel', aktiv: true }, handy);
+    const haengt = (() => new Promise<Response>(() => undefined)) as unknown as typeof fetch;
+    const alt = synchronisiere({ datenbank: handy, abruf: haengt, token, zeitlimit: 60_000 });
+    const start = Date.now();
+    await neuSynchronisieren({ datenbank: handy, abruf, token });
+    await alt;
+    expect(Date.now() - start).toBeLessThan(5_000);
+    expect(syncZustand.lesen().fehler).toBeNull();
+    expect(await handy.outbox.count()).toBe(0);
   });
 
   it('meldet eine abgelaufene Anmeldung', async () => {

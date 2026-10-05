@@ -29,22 +29,45 @@ const PAKET = 200;
 const ZEIT_FELDER = ['beginn', 'ende'];
 const NUR_SERVER = ['serverGeaendertAm'];
 
+// Ohne Zeitlimit kann eine Anfrage bei schlechtem Netz (WLAN ohne Internet, Funkloch) ewig hängen
+// und blockiert dann jeden weiteren Abgleich, bis die App neu geladen wird.
+const ZEITLIMIT = 30_000;
+const ZEITLIMIT_FOTO = 120_000;
+
 type Abruf = typeof fetch;
 interface Umgebung {
   datenbank?: LokaleDatenbank;
   abruf?: Abruf;
   token?: string;
+  /** Zeitlimit je Anfrage in ms (Fotos: das Vierfache). */
+  zeitlimit?: number;
 }
+
+class ServerFehler extends Error {}
 
 const zeitwert = (iso: unknown) => (typeof iso === 'string' ? Date.parse(iso) : 0);
 
-async function anfrage(abruf: Abruf, token: string, url: string, init: RequestInit = {}) {
-  const res = await abruf(url, { ...init, headers: { ...init.headers, authorization: `Bearer ${token}` } });
+async function anfrage(abruf: Abruf, token: string, url: string, init: RequestInit = {}, zeitlimit = ZEITLIMIT) {
+  // Das Zeitlimit gilt bis einschließlich Lesen der Antwort: Das Signal bricht auch einen stockenden Download ab.
+  // Läuft es nach erfolgreicher Anfrage ab, passiert nichts mehr.
+  const abbruch = new AbortController();
+  setTimeout(() => abbruch.abort(new DOMException('Zeitlimit überschritten', 'TimeoutError')), zeitlimit);
+  // Abbruch auch dann wirksam machen, wenn der Abruf das Signal nicht beachtet.
+  const abgebrochen = new Promise<never>((_, nein) => abbruch.signal.addEventListener('abort', () => nein(abbruch.signal.reason)));
+  abgebrochen.catch(() => undefined);
+  // Netzwechsel (z. B. Mobilfunk → WLAN): laufenden Abgleich abbrechen, statt auf tote Verbindungen zu warten.
+  const lauf = laufAbbruch?.signal;
+  if (lauf?.aborted) abbruch.abort(lauf.reason);
+  else lauf?.addEventListener('abort', () => abbruch.abort(lauf.reason), { once: true });
+  const res = await Promise.race([
+    abruf(url, { ...init, signal: abbruch.signal, headers: { ...init.headers, authorization: `Bearer ${token}` } }),
+    abgebrochen,
+  ]);
   if (res.status === 401) throw new NichtAngemeldet('Anmeldung abgelaufen. Bitte neu anmelden.');
   return res;
 }
 
-async function hochladen(datenbank: LokaleDatenbank, abruf: Abruf, token: string) {
+async function hochladen(datenbank: LokaleDatenbank, abruf: Abruf, token: string, zeitlimit: number) {
   const eintraege = await datenbank.outbox.toArray();
   let fehler = 0;
   for (let i = 0; i < eintraege.length; i += PAKET) {
@@ -68,8 +91,8 @@ async function hochladen(datenbank: LokaleDatenbank, abruf: Abruf, token: string
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ aenderungen }),
-    });
-    if (!res.ok) throw new Error(`Hochladen fehlgeschlagen (${res.status})`);
+    }, zeitlimit);
+    if (!res.ok) throw new ServerFehler(`Hochladen fehlgeschlagen (Server meldet ${res.status})`);
     const antwort = (await res.json()) as { uebernommen: string[]; veraltet: string[]; fehler: { id: string }[] };
     fehler += antwort.fehler.length;
 
@@ -87,7 +110,7 @@ async function hochladen(datenbank: LokaleDatenbank, abruf: Abruf, token: string
   return fehler;
 }
 
-async function fotosHochladen(datenbank: LokaleDatenbank, abruf: Abruf, token: string) {
+async function fotosHochladen(datenbank: LokaleDatenbank, abruf: Abruf, token: string, zeitlimit: number) {
   const offen = await datenbank.fotoDatei.filter((f) => !f.hochgeladen).toArray();
   for (const datei of offen) {
     const foto = await datenbank.foto.get(datei.fotoId);
@@ -101,15 +124,15 @@ async function fotosHochladen(datenbank: LokaleDatenbank, abruf: Abruf, token: s
       method: 'PUT',
       headers: { 'content-type': datei.datei.type || foto.mimeTyp },
       body: datei.datei,
-    });
+    }, zeitlimit * 4);
     if (res.ok) await datenbank.fotoDatei.update(datei.fotoId, { hochgeladen: true });
   }
 }
 
-async function abholen(datenbank: LokaleDatenbank, abruf: Abruf, token: string) {
+async function abholen(datenbank: LokaleDatenbank, abruf: Abruf, token: string, zeitlimit: number) {
   const seit = (await datenbank.meta.get('cursor'))?.wert;
-  const res = await anfrage(abruf, token, `/api/sync/pull${seit ? `?seit=${encodeURIComponent(seit)}` : ''}`);
-  if (!res.ok) throw new Error(`Abholen fehlgeschlagen (${res.status})`);
+  const res = await anfrage(abruf, token, `/api/sync/pull${seit ? `?seit=${encodeURIComponent(seit)}` : ''}`, {}, zeitlimit);
+  if (!res.ok) throw new ServerFehler(`Abholen fehlgeschlagen (Server meldet ${res.status})`);
   const { cursor, daten } = (await res.json()) as { cursor: string | null; daten: Record<string, Record<string, unknown>[]> };
 
   await datenbank.transaction('rw', [datenbank.outbox, datenbank.meta, ...SYNC_TABELLEN.map((t) => datenbank.table(t))], async () => {
@@ -129,7 +152,23 @@ async function abholen(datenbank: LokaleDatenbank, abruf: Abruf, token: string) 
   });
 }
 
+function fehlermeldung(e: unknown) {
+  if (e instanceof NichtAngemeldet || e instanceof ServerFehler) return e.message;
+  if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError')) return 'Keine Antwort vom Server (schwaches Netz?)';
+  return 'Server nicht erreichbar';
+}
+
 let laufend: Promise<void> | null = null;
+let laufAbbruch: AbortController | null = null;
+
+/** Bricht einen laufenden Abgleich ab und startet sofort einen neuen. */
+export async function neuSynchronisieren(umgebung: Umgebung = {}) {
+  if (laufend) {
+    laufAbbruch?.abort(new DOMException('Netzwechsel', 'AbortError'));
+    await laufend;
+  }
+  return synchronisiere(umgebung);
+}
 
 /** Führt einen Abgleich aus; parallele Aufrufe teilen sich denselben Lauf. */
 export function synchronisiere(umgebung: Umgebung = {}): Promise<void> {
@@ -137,14 +176,16 @@ export function synchronisiere(umgebung: Umgebung = {}): Promise<void> {
   const datenbank = umgebung.datenbank ?? standardDb;
   const abruf = umgebung.abruf ?? fetch.bind(window);
   const token = umgebung.token ?? gespeicherteAnmeldung()?.token;
+  const zeitlimit = umgebung.zeitlimit ?? ZEITLIMIT;
   if (!token) return Promise.resolve();
 
+  laufAbbruch = new AbortController();
   laufend = (async () => {
     setze({ laeuft: true });
     try {
-      const fehler = await hochladen(datenbank, abruf, token);
-      await fotosHochladen(datenbank, abruf, token);
-      await abholen(datenbank, abruf, token);
+      const fehler = await hochladen(datenbank, abruf, token, zeitlimit);
+      await fotosHochladen(datenbank, abruf, token, zeitlimit);
+      await abholen(datenbank, abruf, token, zeitlimit);
       const jetzt = new Date().toISOString();
       await datenbank.meta.put({ schluessel: 'letzterAbgleich', wert: jetzt });
       setze({
@@ -152,10 +193,11 @@ export function synchronisiere(umgebung: Umgebung = {}): Promise<void> {
         fehler: fehler ? `${fehler} Einträge wurden vom Server abgelehnt` : null,
       });
     } catch (e) {
-      setze({ fehler: e instanceof NichtAngemeldet ? e.message : 'Server nicht erreichbar' });
+      setze({ fehler: fehlermeldung(e) });
     } finally {
       setze({ laeuft: false });
       laufend = null;
+      laufAbbruch = null;
     }
   })();
   return laufend;
@@ -178,27 +220,46 @@ export async function ladeFoto(fotoId: string, datenbank: LokaleDatenbank = stan
 
 /** Startet den automatischen Abgleich: beim Start, wenn das Netz zurückkommt, nach Änderungen und jede Minute. */
 export function starteAutoSync(datenbank: LokaleDatenbank = standardDb) {
-  const versuche = () => {
-    if (navigator.onLine && document.visibilityState === 'visible') void synchronisiere({ datenbank });
+  // Nach einem Fehlschlag bald erneut versuchen (5 s, 15 s, 30 s), danach im Minutentakt.
+  const WARTEZEITEN = [5_000, 15_000, 30_000];
+  let fehlversuche = 0;
+  let wiederholung: ReturnType<typeof setTimeout> | undefined;
+  const versuche = (neu = false) => {
+    if (!navigator.onLine || document.visibilityState !== 'visible') return;
+    clearTimeout(wiederholung);
+    void (neu ? neuSynchronisieren : synchronisiere)({ datenbank }).then(() => {
+      const { fehler } = syncZustand.lesen();
+      if (!fehler || /anmelden|abgelehnt/.test(fehler)) {
+        fehlversuche = 0;
+        return;
+      }
+      if (fehlversuche < WARTEZEITEN.length) wiederholung = setTimeout(() => versuche(), WARTEZEITEN[fehlversuche++]);
+    });
   };
   let verzoegert: ReturnType<typeof setTimeout> | undefined;
   const baldVersuchen = () => {
     clearTimeout(verzoegert);
-    verzoegert = setTimeout(versuche, 3000);
+    verzoegert = setTimeout(() => versuche(), 3000);
   };
 
   datenbank.meta.get('letzterAbgleich').then((m) => m && setze({ letzterErfolg: m.wert }));
-  window.addEventListener('online', versuche);
-  document.addEventListener('visibilitychange', versuche);
+  const sichtbar = () => versuche();
+  const wiederOnline = () => {
+    fehlversuche = 0;
+    versuche(true);
+  };
+  window.addEventListener('online', wiederOnline);
+  document.addEventListener('visibilitychange', sichtbar);
   datenbank.outbox.hook('creating', baldVersuchen);
-  const takt = setInterval(versuche, 60_000);
+  const takt = setInterval(() => versuche(), 60_000);
   versuche();
 
   return () => {
-    window.removeEventListener('online', versuche);
-    document.removeEventListener('visibilitychange', versuche);
+    window.removeEventListener('online', wiederOnline);
+    document.removeEventListener('visibilitychange', sichtbar);
     datenbank.outbox.hook('creating').unsubscribe(baldVersuchen);
     clearInterval(takt);
     clearTimeout(verzoegert);
+    clearTimeout(wiederholung);
   };
 }
