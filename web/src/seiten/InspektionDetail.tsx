@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { Link, useParams } from 'react-router-dom';
 import { aktiv, db, speichere, type Inspektion } from '../db/lokal';
+import { BerichtKnopf } from '../BerichtKnopf';
 import { FotoVorschau } from '../FotoVorschau';
 import { Leer, Seitenkopf, TYP_NAMEN, datum, jetztUhrzeit } from '../komponenten';
 
@@ -102,12 +103,15 @@ export function InspektionDetail() {
         })}
       </ul>
 
+      <h3>Bericht</h3>
+      <BerichtKnopf inspektionId={inspektion.id} />
+
       {offen ? (
-        <button type="button" className="primaer" onClick={() => setzeStatus('abgeschlossen')}>
+        <button type="button" className="primaer abschluss" onClick={() => setzeStatus('abgeschlossen')}>
           Inspektion abschließen
         </button>
       ) : (
-        <button type="button" onClick={() => setzeStatus('entwurf')}>
+        <button type="button" className="abschluss" onClick={() => setzeStatus('entwurf')}>
           Wieder öffnen
         </button>
       )}

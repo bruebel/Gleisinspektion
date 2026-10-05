@@ -48,5 +48,5 @@ Die erzeugte Migration in `api/drizzle/` mit einchecken; sie wird beim Start der
 - [x] Stammdaten (Gleisanschlüsse, Ansprechpartner, Infrastrukturelemente) inkl. Excel-Import
 - [x] Inspektion und Feststellungen mit Fotos offline erfassen
 - [x] Synchronisation Gerät ↔ Server (beim Öffnen der App, bei Netzrückkehr, nach Änderungen, minütlich)
-- [ ] PDF-Bericht
+- [x] PDF-Bericht
 - [ ] Automatischer Versand, Nachverfolgung, weitere Benutzer
