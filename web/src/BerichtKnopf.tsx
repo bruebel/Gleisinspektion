@@ -26,7 +26,7 @@ export function BerichtKnopf({ inspektionId }: { inspektionId: string }) {
       const res = await fetch(`/api/inspektionen/${inspektionId}/bericht.pdf`, {
         headers: { authorization: `Bearer ${gespeicherteAnmeldung()?.token ?? ''}` },
       });
-      if (res.status === 404) throw new Error('Die Inspektion ist noch nicht auf dem Server. Bitte später erneut versuchen.');
+      if (res.status === 404) throw new Error('Die Begehung ist noch nicht auf dem Server. Bitte später erneut versuchen.');
       if (!res.ok) throw new Error('Der Bericht konnte nicht erstellt werden.');
       const name = decodeURIComponent(/filename\*=UTF-8''([^;]+)/.exec(res.headers.get('content-disposition') ?? '')?.[1] ?? 'Bericht.pdf');
       const pdf = new File([await res.blob()], name, { type: 'application/pdf' });

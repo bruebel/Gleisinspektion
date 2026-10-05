@@ -28,7 +28,7 @@ export function InspektionDetail() {
   }, [feststellungen]);
 
   if (inspektion === undefined) return null;
-  if (!inspektion || inspektion.geloescht) return <Leer>Inspektion nicht gefunden.</Leer>;
+  if (!inspektion || inspektion.geloescht) return <Leer>Begehung nicht gefunden.</Leer>;
 
   const offen = inspektion.status === 'entwurf';
   const elementName = (eid?: string | null) => {
@@ -45,7 +45,7 @@ export function InspektionDetail() {
 
   return (
     <section>
-      <Seitenkopf titel={anschluss?.name ?? 'Inspektion'} zurueck="/">
+      <Seitenkopf titel={anschluss?.name ?? 'Begehung'} zurueck="/">
         <Link to={`/inspektionen/${id}/bearbeiten`} className="knopf klein">
           Bearbeiten
         </Link>
@@ -53,6 +53,7 @@ export function InspektionDetail() {
 
       <div className="karte">
         <p>
+          {inspektion.art && <>{inspektion.art} · </>}
           <strong>{datum(inspektion.datum)}</strong>
           {inspektion.beginn && `, ${inspektion.beginn}–${inspektion.ende ?? '…'} Uhr`}
         </p>
@@ -108,7 +109,7 @@ export function InspektionDetail() {
 
       {offen ? (
         <button type="button" className="primaer abschluss" onClick={() => setzeStatus('abgeschlossen')}>
-          Inspektion abschließen
+          Begehung abschließen
         </button>
       ) : (
         <button type="button" className="abschluss" onClick={() => setzeStatus('entwurf')}>

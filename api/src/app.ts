@@ -53,7 +53,7 @@ export function baueApp(
     async (req, reply) => {
       if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return reply.code(400).send({ fehler: 'Ungültig' });
       const bericht = await erstelleBericht(db, req.params.id, fotoOrdner);
-      if (!bericht) return reply.code(404).send({ fehler: 'Inspektion nicht gefunden' });
+      if (!bericht) return reply.code(404).send({ fehler: 'Begehung nicht gefunden' });
       return reply
         .type('application/pdf')
         .header('content-disposition', `inline; filename*=UTF-8''${encodeURIComponent(bericht.dateiname)}`)

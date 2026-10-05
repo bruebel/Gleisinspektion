@@ -1,0 +1,1 @@
+ALTER TABLE "inspektion" ADD COLUMN "art" text;
