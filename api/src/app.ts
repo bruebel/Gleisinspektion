@@ -4,6 +4,7 @@ import { eq, sql } from 'drizzle-orm';
 import type { Db } from './db.js';
 import { beendeSitzung, benutzerZuToken, erstelleSitzung, pruefePasswort } from './auth.js';
 import { benutzer } from './schema.js';
+import { erstelleBericht } from './bericht.js';
 import { registriereSync } from './sync.js';
 
 export type AngemeldeterBenutzer = NonNullable<Awaited<ReturnType<typeof benutzerZuToken>>>;
@@ -43,10 +44,22 @@ export function baueApp(
     if (req.benutzer.rolle === 'empfaenger') return reply.code(403).send({ fehler: 'Keine Berechtigung' });
   };
 
-  registriereSync(app, db, {
-    fotoOrdner: optionen.fotoOrdner ?? process.env.FOTO_ORDNER ?? './data/fotos',
-    nurBerechtigt: nurInspektoren,
-  });
+  const fotoOrdner = optionen.fotoOrdner ?? process.env.FOTO_ORDNER ?? './data/fotos';
+  registriereSync(app, db, { fotoOrdner, nurBerechtigt: nurInspektoren });
+
+  app.get<{ Params: { id: string } }>(
+    '/api/inspektionen/:id/bericht.pdf',
+    { onRequest: nurInspektoren },
+    async (req, reply) => {
+      if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return reply.code(400).send({ fehler: 'Ungültig' });
+      const bericht = await erstelleBericht(db, req.params.id, fotoOrdner);
+      if (!bericht) return reply.code(404).send({ fehler: 'Inspektion nicht gefunden' });
+      return reply
+        .type('application/pdf')
+        .header('content-disposition', `inline; filename*=UTF-8''${encodeURIComponent(bericht.dateiname)}`)
+        .send(bericht.pdf);
+    },
+  );
 
   app.get('/api/health', async () => {
     await db.execute(sql`select 1`);

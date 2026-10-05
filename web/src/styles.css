@@ -391,3 +391,19 @@ h4 {
   border-radius: 0;
   font-weight: 400;
 }
+
+.bericht {
+  display: grid;
+  gap: 8px;
+}
+
+.bericht > button,
+.bericht .knopf,
+.bericht .zweispaltig > button {
+  width: 100%;
+}
+
+button.abschluss {
+  width: 100%;
+  margin-top: 24px;
+}
